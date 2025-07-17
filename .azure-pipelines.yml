@@ -28,3 +28,7 @@ steps:
   env:
     TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
   displayName: 'Terraform Init, Plan & Apply'
+
+- script: |
+    echo "Terraform deployment completed successfully."
+  displayName: 'Deployment Complete'
