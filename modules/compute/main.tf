@@ -1,5 +1,5 @@
 resource "google_compute_instance" "vm_instance" {
-  name         = "ubuntu-vm"
+  name         = "ado-tfe-instance-01"
   machine_type = "f1-micro"
   zone         = "${var.region}-a"
 
@@ -10,10 +10,16 @@ resource "google_compute_instance" "vm_instance" {
   }
 
   network_interface {
+    # network    = module.network.custom_vpc_id // Use the VPC created in the network module
     subnetwork = var.subnet
     access_config {
       // No public IP
     }
+  }
+  
+  labels = {
+    "created_by" = "ADO_Terraform"
+    "environment" = "test"
   }
 
   metadata = {
