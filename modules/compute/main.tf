@@ -18,7 +18,7 @@ resource "google_compute_instance" "vm_instance" {
   }
   
   labels = {
-    "created_by" = "ADO_Terraform"
+    "created-by" = "ADO-Terraform"
     "environment" = "test"
   }
 
