@@ -6,7 +6,7 @@ terraform {
     }
   }
 
-  backend "remote" {
+  cloud {
     organization = "TF_Cloud_Org_101"
 
     workspaces {
