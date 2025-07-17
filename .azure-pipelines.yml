@@ -7,8 +7,12 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  TF_CLOUD_ORGANIZATION: 'TF_Cloud_Org_101'
-  TF_WORKSPACE: 'tf-gcp-with-ado'
+  - name: TF_API_TOKEN
+    value: $(TF_API_TOKEN) # Ensure this variable is set in your pipeline variables or variable group  
+  - name: TF_CLOUD_ORGANIZATION
+    value: 'TF_Cloud_Org_101'
+  - name: TF_WORKSPACE
+    value: 'tf-gcp-with-ado'
 
 steps:
 - task: UsePythonVersion@0
