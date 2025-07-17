@@ -16,9 +16,11 @@ terraform {
 }
 
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  project     = var.project_id
+  region      = var.region
+  credentials = var.credentials_file
 }
+
 
 module "network" {
   source     = "./modules/network"
