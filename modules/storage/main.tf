@@ -7,8 +7,8 @@ resource "google_storage_bucket" "gcs_bucket" {
   }
   force_destroy               = true
   uniform_bucket_level_access = true
-  labels = {
-    "created-by" = "ADO-Terraform"
-    "environment" = "test"
-  }
+  # labels = {
+  #   "created-by" = "ADO-Terraform"
+  #   "environment" = "test"
+  # }
 }

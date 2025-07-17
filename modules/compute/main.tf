@@ -17,10 +17,10 @@ resource "google_compute_instance" "vm_instance" {
     }
   }
   
-  labels = {
-    "created-by" = "ADO-Terraform"
-    "environment" = "test"
-  }
+  # labels = {
+  #   "created-by" = "ADO-Terraform"
+  #   "environment" = "test"
+  # }
 
   metadata = {
     ssh-keys = "terraform:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."
