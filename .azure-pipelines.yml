@@ -7,8 +7,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - name: TF_API_TOKEN
-    value: $(TF_API_TOKEN) # Ensure this variable is set in your pipeline variables or variable group  
+  - group: terraform-secrets  # This pulls in TF_API_TOKEN securely
   - name: TF_CLOUD_ORGANIZATION
     value: 'TF_Cloud_Org_101'
   - name: TF_WORKSPACE
@@ -18,6 +17,7 @@ steps:
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '3.x'
+  displayName: 'Use Python 3.x'
 
 - script: |
     curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -25,14 +25,26 @@ steps:
     sudo apt update && sudo apt install terraform -y
   displayName: 'Install Terraform'
 
-- script: |
-    terraform init
-    terraform plan
-    terraform apply -auto-approve
+- script: terraform init
   env:
     TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-  displayName: 'Terraform Init, Plan & Apply'
+  displayName: 'Terraform Init'
 
-- script: |
-    echo "Terraform deployment completed successfully."
+- script: terraform validate
+  displayName: 'Terraform Validate'
+
+- script: terraform fmt -check
+  displayName: 'Terraform Format Check'
+
+- script: terraform plan -out=tfplan
+  env:
+    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+  displayName: 'Terraform Plan'
+
+- script: terraform apply -auto-approve tfplan
+  env:
+    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+  displayName: 'Terraform Apply'
+
+- script: echo "Terraform deployment completed successfully."
   displayName: 'Deployment Complete'
