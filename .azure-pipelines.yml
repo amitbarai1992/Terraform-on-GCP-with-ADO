@@ -48,3 +48,11 @@ steps:
 
 - script: echo "Terraform deployment completed successfully."
   displayName: 'Deployment Complete'
+
+- script: terraform destroy -auto-approve
+  env:
+    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+  displayName: 'Terraform Destroy'
+
+- script: echo "Terraform resources destroyed successfully."
+  displayName: 'Destroy Resources'
