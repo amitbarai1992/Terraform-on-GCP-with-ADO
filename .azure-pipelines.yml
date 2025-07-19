@@ -4,45 +4,45 @@ trigger:
       - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
-  - group: terraform-secrets  # TF_API_TOKEN securely stored
+  - group: terraform-secrets # TF_API_TOKEN securely stored
   - name: TF_CLOUD_ORGANIZATION
-    value: 'TF_Cloud_Org_101'
+    value: "TF_Cloud_Org_101"
   - name: TF_WORKSPACE
-    value: 'tf-gcp-with-ado'
+    value: "tf-gcp-with-ado"
 
 stages:
   - stage: Validate
-    displayName: 'Terraform Validation'
+    displayName: "Terraform Validation"
     jobs:
       - job: ValidateJob
         steps:
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: '3.x'
-            displayName: 'Use Python 3.x'
+              versionSpec: "3.x"
+            displayName: "Use Python 3.x"
 
           - script: |
               curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
               echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
               sudo apt update && sudo apt install terraform -y
-            displayName: 'Install Terraform'
+            displayName: "Install Terraform"
 
           - script: terraform init
             env:
               TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-            displayName: 'Terraform Init'
+            displayName: "Terraform Init"
 
           - script: terraform validate
-            displayName: 'Terraform Validate'
+            displayName: "Terraform Validate"
 
           - script: terraform fmt -check
-            displayName: 'Terraform Format Check'
+            displayName: "Terraform Format Check"
 
   - stage: Plan
-    displayName: 'Terraform Plan'
+    displayName: "Terraform Plan"
     dependsOn: Validate
     jobs:
       - job: PlanJob
@@ -50,15 +50,15 @@ stages:
           - script: terraform plan -out=tfplan
             env:
               TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-            displayName: 'Terraform Plan'
+            displayName: "Terraform Plan"
 
   - stage: Apply
-    displayName: 'Terraform Apply'
+    displayName: "Terraform Apply"
     dependsOn: Plan
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - deployment: ApplyDeployment
-        environment: 'prod-approval'  # This triggers manual approval
+        environment: "prod-approval" # This triggers manual approval
         strategy:
           runOnce:
             deploy:
@@ -66,7 +66,7 @@ stages:
                 - script: terraform apply -auto-approve tfplan
                   env:
                     TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-                  displayName: 'Terraform Apply'
+                  displayName: "Terraform Apply"
 
                 - script: echo "Terraform deployment completed successfully."
-                  displayName: 'Deployment Complete'
+                  displayName: "Deployment Complete"
