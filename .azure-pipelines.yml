@@ -19,11 +19,6 @@ stages:
     jobs:
       - job: ValidateJob
         steps:
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '3.x'
-            displayName: 'Use Python 3.x'
-
           - script: |
               curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
               echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
@@ -47,10 +42,27 @@ stages:
     jobs:
       - job: PlanJob
         steps:
+          - script: |
+              curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+              echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+              sudo apt update && sudo apt install terraform -y
+            displayName: 'Install Terraform'
+
+          - script: terraform init
+            env:
+              TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+            displayName: 'Terraform Init'
+
           - script: terraform plan -out=tfplan
             env:
               TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
             displayName: 'Terraform Plan'
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Terraform Plan'
+            inputs:
+              targetPath: 'tfplan'
+              artifact: 'tfplan'
 
   - stage: Apply
     displayName: 'Terraform Apply'
@@ -63,7 +75,24 @@ stages:
           runOnce:
             deploy:
               steps:
-                - script: terraform apply -auto-approve tfplan
+                - task: DownloadPipelineArtifact@2
+                  displayName: 'Download Terraform Plan'
+                  inputs:
+                    artifact: 'tfplan' # The name of the artifact to download
+                    path: '$(Pipeline.Workspace)' # The path where the artifact will be downloaded
+
+                - script: |
+                    curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+                    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+                    sudo apt update && sudo apt install terraform -y
+                  displayName: 'Install Terraform'
+
+                - script: terraform init
+                  env:
+                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+                  displayName: 'Terraform Init'
+
+                - script: terraform apply -auto-approve $(Pipeline.Workspace)/tfplan
                   env:
                     TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
                   displayName: 'Terraform Apply'
