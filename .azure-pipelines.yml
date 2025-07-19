@@ -57,12 +57,16 @@ stages:
     dependsOn: Plan
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
-      - job: ApplyJob
-        steps:
-          - script: terraform apply -auto-approve tfplan
-            env:
-              TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-            displayName: 'Terraform Apply'
+      - deployment: ApplyDeployment
+        environment: 'prod-approval'  # This triggers manual approval
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: terraform apply -auto-approve tfplan
+                  env:
+                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+                  displayName: 'Terraform Apply'
 
-          - script: echo "Terraform deployment completed successfully."
-            displayName: 'Deployment Complete'
+                - script: echo "Terraform deployment completed successfully."
+                  displayName: 'Deployment Complete'
