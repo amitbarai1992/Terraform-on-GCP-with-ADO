@@ -14,7 +14,7 @@ variables:
   - name: TF_WORKSPACE
     value: "tf-gcp-with-ado"
   - name: RunDestroy
-    value: 'true' # Set to 'true' to enable destroy stage
+    value: 'false' # Set to 'true' to enable destroy stage
 
 stages:
   - stage: Validate

@@ -21,19 +21,20 @@ provider "google" {
   credentials = var.credentials_file
 }
 
+// Uncomment the following modules to create network and compute resources
 
-module "network" {
-  source     = "./modules/network"
-  project_id = var.project_id
-  region     = var.region
-}
+# module "network" { // Network module to create VPC and subnets
+#   source     = "./modules/network"
+#   project_id = var.project_id
+#   region     = var.region
+# }
 
-module "compute" {
-  source     = "./modules/compute"
-  project_id = var.project_id
-  region     = var.region
-  subnet     = module.network.subnet_name
-}
+# module "compute" { // Compute module to create VM instances
+#   source     = "./modules/compute"
+#   project_id = var.project_id
+#   region     = var.region
+#   subnet     = module.network.subnet_name
+# }
 
 module "storage" {
   source     = "./modules/storage"
