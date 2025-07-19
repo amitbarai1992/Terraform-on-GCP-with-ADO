@@ -1,3 +1,4 @@
+# azure-pipelines.yml
 trigger:
   branches:
     include:
@@ -22,7 +23,7 @@ stages:
           - task: TerraformInstaller@1
             displayName: 'Install Terraform'
             inputs:
-              terraformVersion: 'latest'
+              terraformVersion: '1.8.2' # Pinning version for stability
 
           - script: terraform init
             env:
@@ -44,7 +45,7 @@ stages:
           - task: TerraformInstaller@1
             displayName: 'Install Terraform'
             inputs:
-              terraformVersion: 'latest'
+              terraformVersion: '1.8.2'
 
           - script: terraform init
             env:
@@ -67,10 +68,12 @@ stages:
           runOnce:
             deploy:
               steps:
+                - checkout: self # Explicitly check out the code for deployment jobs
+
                 - task: TerraformInstaller@1
                   displayName: 'Install Terraform'
                   inputs:
-                    terraformVersion: 'latest'
+                    terraformVersion: '1.8.2'
 
                 - script: terraform init
                   env:
