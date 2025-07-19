@@ -9,10 +9,12 @@ pool:
 
 variables:
   - group: terraform-secrets # TF_API_TOKEN securely stored
-  - name: TF_CLOUD_ORGANIZATION
+  - name: TF_CLOUD_ORGANIZATION  
     value: "TF_Cloud_Org_101"
   - name: TF_WORKSPACE
     value: "tf-gcp-with-ado"
+  - name: RunDestroy
+    value: 'false'
 
 stages:
   - stage: Validate
@@ -87,3 +89,30 @@ stages:
 
                 - script: echo "Terraform deployment completed successfully."
                   displayName: "Deployment Complete"
+
+  - stage: Destroy
+    displayName: "Terraform Destroy"
+    dependsOn: Apply
+    condition: and(succeeded(), eq(variables['RunDestroy'], 'true'))
+    jobs:
+      - deployment: DestroyDeployment
+        environment: 'prod-destroy-approval'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: TerraformInstaller@1
+                  displayName: 'Install Terraform'
+                  inputs:
+                    terraformVersion: '1.8.2'
+                - script: terraform init
+                  env:
+                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+                  displayName: 'Terraform Init'
+                - script: terraform destroy -auto-approve
+                  env:
+                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+                  displayName: 'Terraform Destroy'
+                - script: echo "Terraform destroy completed successfully."
+                  displayName: "Destroy Complete"
