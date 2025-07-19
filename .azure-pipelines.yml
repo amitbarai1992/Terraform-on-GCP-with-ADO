@@ -92,7 +92,7 @@ stages:
                     TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
                   displayName: 'Terraform Init'
 
-                - script: terraform apply -auto-approve $(Pipeline.Workspace)/tfplan
+                - script: terraform apply -auto-approve $(Pipeline.Workspace)/tfplan/tfplan
                   env:
                     TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
                   displayName: "Terraform Apply"
