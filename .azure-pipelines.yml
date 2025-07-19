@@ -14,7 +14,7 @@ variables:
   - name: TF_WORKSPACE
     value: "tf-gcp-with-ado"
   - name: RunDestroy
-    value: 'false'
+    value: 'true' # Set to 'true' to enable destroy stage
 
 stages:
   - stage: Validate
@@ -62,7 +62,7 @@ stages:
   - stage: Apply
     displayName: "Terraform Apply"
     dependsOn: Plan
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main')) # Only run on main branch
     jobs:
       - deployment: ApplyDeployment
         environment: "prod-approval" # This triggers manual approval
@@ -93,10 +93,10 @@ stages:
   - stage: Destroy
     displayName: "Terraform Destroy"
     dependsOn: Apply
-    condition: and(succeeded(), eq(variables['RunDestroy'], 'true'))
+    condition: and(succeeded(), eq(variables['RunDestroy'], 'true')) # Only run if RunDestroy is set to true
     jobs:
       - deployment: DestroyDeployment
-        environment: 'prod-destroy-approval'
+        environment: 'prod-destroy-approval' # This triggers manual approval for destroy
         strategy:
           runOnce:
             deploy:
