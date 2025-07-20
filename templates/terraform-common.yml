@@ -1,0 +1,13 @@
+# templates/terraform-common.yml
+parameters:
+  terraformVersion: '1.8.2'
+
+steps:
+- task: TerraformInstaller@1
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: ${{ parameters.terraformVersion }}
+- script: terraform init
+  env:
+    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+  displayName: 'Terraform Init'

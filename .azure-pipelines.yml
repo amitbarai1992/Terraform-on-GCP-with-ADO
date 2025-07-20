@@ -8,111 +8,92 @@ pool:
   vmImage: "ubuntu-latest"
 
 variables:
-  - group: terraform-secrets # TF_API_TOKEN securely stored
-  - name: TF_CLOUD_ORGANIZATION  
+  - group: terraform-secrets
+  - name: TF_CLOUD_ORGANIZATION
     value: "TF_Cloud_Org_101"
   - name: TF_WORKSPACE
     value: "tf-gcp-with-ado"
   - name: RunDestroy
-    value: 'false' # Set to 'true' to enable destroy stage
+    value: 'false'
 
 stages:
-  - stage: Validate
-    displayName: "Terraform Validation"
-    jobs:
-      - job: ValidateJob
-        steps:
-          - task: TerraformInstaller@1
-            displayName: 'Install Terraform'
-            inputs:
-              terraformVersion: '1.8.2' # Pinning version for stability
+- stage: Validate
+  displayName: "Terraform Validation"
+  jobs:
+  - job: ValidateJob
+    timeoutInMinutes: 30
+    steps:
+    - template: templates/terraform-common.yml
+      parameters:
+        terraformVersion: '1.8.2'
+    - script: terraform validate
+      displayName: "Terraform Validate"
+    - script: terraform fmt -check
+      displayName: "Terraform Format Check"
+    - script: |
+        curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+        tflint
+      displayName: "Terraform Lint"
 
-          - script: terraform init
-            env:
-              TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-            displayName: "Terraform Init"
+- stage: Plan
+  displayName: "Terraform Plan"
+  dependsOn: Validate
+  jobs:
+  - job: PlanJob
+    timeoutInMinutes: 30
+    steps:
+    - template: templates/terraform-common.yml
+      parameters:
+        terraformVersion: '1.8.2'
+    - script: terraform plan -out=tfplan
+      env:
+        TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
+      displayName: "Terraform Plan"
+    - publish: tfplan
+      artifact: terraformPlan
 
-          - script: terraform validate
-            displayName: "Terraform Validate"
-
-          - script: terraform fmt -check
-            displayName: "Terraform Format Check"
-
-  - stage: Plan
-    displayName: "Terraform Plan"
-    dependsOn: Validate
-    jobs:
-      - job: PlanJob
-        steps:
-          - task: TerraformInstaller@1
-            displayName: 'Install Terraform'
-            inputs:
+- stage: Apply
+  displayName: "Terraform Apply"
+  dependsOn: Plan
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: ApplyDeployment
+    environment: "prod-approval"
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - template: templates/terraform-common.yml
+            parameters:
               terraformVersion: '1.8.2'
-
-          - script: terraform init
+          - download: current
+            artifact: terraformPlan
+          - script: terraform apply tfplan
             env:
               TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-            displayName: 'Terraform Init'
+            displayName: "Terraform Apply"
+          - script: echo "Terraform deployment completed successfully."
+            displayName: "Deployment Complete"
 
-          - script: terraform plan
+- stage: Destroy
+  displayName: "Terraform Destroy"
+  dependsOn: Apply
+  condition: and(succeeded(), eq(variables['RunDestroy'], 'true'))
+  jobs:
+  - deployment: DestroyDeployment
+    environment: 'prod-destroy-approval'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - template: templates/terraform-common.yml
+            parameters:
+              terraformVersion: '1.8.2'
+          - script: terraform destroy -auto-approve
             env:
               TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-            displayName: 'Terraform Plan (Dry Run)'
-
-  - stage: Apply
-    displayName: "Terraform Apply"
-    dependsOn: Plan
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main')) # Only run on main branch
-    jobs:
-      - deployment: ApplyDeployment
-        environment: "prod-approval" # This triggers manual approval
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self # Explicitly check out the code for deployment jobs
-
-                - task: TerraformInstaller@1
-                  displayName: 'Install Terraform'
-                  inputs:
-                    terraformVersion: '1.8.2'
-
-                - script: terraform init
-                  env:
-                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-                  displayName: 'Terraform Init'
-
-                - script: terraform apply -auto-approve
-                  env:
-                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-                  displayName: "Terraform Apply"
-
-                - script: echo "Terraform deployment completed successfully."
-                  displayName: "Deployment Complete"
-
-  - stage: Destroy
-    displayName: "Terraform Destroy"
-    dependsOn: Apply
-    condition: and(succeeded(), eq(variables['RunDestroy'], 'true')) # Only run if RunDestroy is set to true
-    jobs:
-      - deployment: DestroyDeployment
-        environment: 'prod-destroy-approval' # This triggers manual approval for destroy
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-                - task: TerraformInstaller@1
-                  displayName: 'Install Terraform'
-                  inputs:
-                    terraformVersion: '1.8.2'
-                - script: terraform init
-                  env:
-                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-                  displayName: 'Terraform Init'
-                - script: terraform destroy -auto-approve
-                  env:
-                    TF_TOKEN_app_terraform_io: $(TF_API_TOKEN)
-                  displayName: 'Terraform Destroy'
-                - script: echo "Terraform destroy completed successfully."
-                  displayName: "Destroy Complete"
+            displayName: "Terraform Destroy"
+          - script: echo "Terraform destroy completed successfully."
+            displayName: "Destroy Complete"
